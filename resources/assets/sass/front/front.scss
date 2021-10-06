@@ -1,0 +1,130 @@
+@import '~bootstrap/scss/bootstrap';
+@import '~font-awesome/css/font-awesome.min.css';
+
+/*
+ * Footer
+ */
+.blog-footer {
+    padding: 2.5rem 0;
+    color: #212529;
+    text-align: center;
+    background-color: #f0f8ff;
+    border-top: .05rem solid #f0f8ff;
+    margin-top: 20px;
+
+}
+.blog-footer p:last-child {
+    margin-bottom: 0;
+}
+
+
+.back-to-top {
+    display: none;
+    position: fixed;
+    width: 35px;
+    height: 35px;
+    background: #344153;
+    border-radius: 4px;
+    text-align: center;
+    bottom: 70px;
+    cursor: pointer;
+    right: 2%;
+    -webkit-transition: all 0.5s ease-in-out;
+    -o-transition: all 0.5s ease-in-out;
+    transition: all 0.5s ease-in-out;
+    z-index: 9; }
+
+.scroll-top i {
+    font-size: 30px;
+    line-height: 35px;
+    color: #fff; }
+
+.help-block{
+    color: #ff1501;
+}
+
+/* login*/
+.form-signin {
+    width: 100%;
+    max-width: 550px;
+    padding: 15px;
+    margin: 0 auto;
+    padding-top: 112px;
+    padding-bottom: 112px;
+}
+.form-signin .checkbox {
+    font-weight: 400;
+}
+.form-signin .form-control {
+    position: relative;
+    box-sizing: border-box;
+    height: auto;
+    padding: 10px;
+    font-size: 16px;
+}
+.form-signin .form-control:focus {
+    z-index: 2;
+}
+.form-signin input[type="email"] {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+@media (min-width: 768px) and (max-width: 1920px) {
+
+    .padding-pranto-top{
+        padding-top: 120px;
+    }
+
+    .padding-pranto-bottom{
+        padding-bottom: 120px;
+    }
+
+}
+
+
+@media (max-width: 575.98px) {
+        .margin-top-pranto{
+        margin-top: 10px;
+    }
+}
+
+.table .thead-light th {
+    color: #212529;
+}
+
+.btn-light {
+    color: #f8f9fa;
+    background-color: #636e72;
+    border-color: #636e72;
+}
+.jumbotron.text-center ,
+.jumbotron{
+    border: 1px solid #212529;
+}
+.table {
+    border: 1px solid #212529;
+}
+h4{
+    text-transform: uppercase;
+    font-size: 24px;
+}
+.display-4 {
+  font-size: 36px;
+}
+.btn-primary {
+    color: #fff;
+    background-color: #212529;
+    border-color: #212529;
+}
+.btn-primary:hover {
+    color: #fff;
+    background-color: #3c3c3c;
+    border-color: #3c3c3c;
+}

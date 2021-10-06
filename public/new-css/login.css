@@ -1,0 +1,190 @@
+/*Login Form css*/
+.styled-checkbox {
+  position: absolute;
+  opacity: 0;
+}
+ul.unstyled.centered li {
+    list-style: none;
+    
+}
+ul.unstyled.centered {
+padding-left: 0px;
+    
+}
+
+.input-control1 {
+    font-size: 18px !important;
+    letter-spacing: 0px;
+    font-weight: 500 !important;
+    font-family: "Poppins";
+    height: 89px !important;
+    background-color: #f3f2ef !important;
+    border: none !important;
+    border-radius: 0px !important;
+}
+.styled-checkbox + label {
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+}
+.styled-checkbox + label:before {
+  content: "";
+  margin-right: 10px;
+  display: inline-block;
+  vertical-align: text-top;
+  width: 20px;
+  height: 20px;
+  background: #d4cfcf;;
+}
+.styled-checkbox:hover + label:before {
+  background: #0a65c1;
+}
+
+.styled-checkbox:checked + label:before {
+  background: #0a65c1;
+}
+.styled-checkbox:disabled + label {
+  color: #b8b8b8;
+  cursor: auto;
+}
+.styled-checkbox:disabled + label:before {
+  box-shadow: none;
+  background: #ddd;
+}
+.styled-checkbox:checked + label:after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 13px;
+  background: white;
+  width: 2px;
+  height: 2px;
+  box-shadow: 2px 0 0 white, 4px 0 0 white, 4px -2px 0 white, 4px -4px 0 white, 4px -6px 0 white, 4px -8px 0 white;
+  transform: rotate(45deg);
+}
+.login-form {
+    width: 560px;
+    padding-top: 40px;
+    margin: 0px auto;
+    text-shadow: none;
+}
+.logo-header p{font-size: 25px;letter-spacing: 1px;color: #000000;font-weight: 700;font-family: "Poppins";text-align: center;}
+.logo-header img{
+	padding-bottom: 20px;
+}
+.logo-header span{
+font-size: 16px;
+letter-spacing: 1px;
+color: #000000;
+font-weight: 400;
+font-family: "Poppins";
+text-align: center;
+}
+.login-control {
+    font-size: 18px !important;
+    letter-spacing: 0px;
+    font-weight: 500 !important;
+    font-family: "Poppins";
+    height: 48px !important;
+    background-color: #f3f2ef !important;
+    border: none !important;
+    border-radius: 0px !important;
+}
+span.Select-control {
+    font-size: 18px;
+    letter-spacing: 0px;
+    color: #000000;
+    font-weight: 500 !important;
+    font-family: "Poppins";
+    padding-bottom: 13px;
+    display: block;
+}
+.form-row.login-span {
+    padding-bottom: 10px;
+}
+
+.styled-checkbox {
+    position: absolute;
+    opacity: 0;
+}
+.styled-checkbox + label:before {
+    content: "";
+    margin-right: 10px;
+    display: inline-block;
+    vertical-align: text-top;
+    width: 20px;
+    height: 20px;
+    background: #d4cfcf;
+}
+.styled-checkbox + label {
+    position: relative;
+    cursor: pointer;
+    padding: 0;
+    font-size: 18px;
+	letter-spacing: 0px;
+	line-height: 35px;
+	color: #000000;
+	font-weight: 500;
+	font-family: "Poppins";
+}
+.lost-your-password-wrap a{
+	font-size: 18px;
+	letter-spacing: 0px;
+	line-height: 35px;
+	color: #000000;
+	font-weight: 500;
+	font-family: "Poppins";
+	float: right;
+	text-decoration:none;
+}
+.form-group.col-md-12.select-cat1 {
+    padding-bottom: 10px;
+}
+button.btn.btn-primary.publish {
+    margin: 35px auto;
+    /* position: absolute; */
+    display: block;
+    text-align: center;
+    width:100%;
+    height: 58px;
+    border-radius: 5px;
+    background-color: #0a66c2;
+    border: none;
+    font-size: 18px;
+    letter-spacing: 0px;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 18px;
+	letter-spacing: 0px;
+	color: #ffffff;
+	font-weight: 500;
+	font-family: "Poppins";
+}
+.footer-login span{
+font-size: 18px;
+letter-spacing: 0px;
+line-height: 35px;
+color: #000000;
+font-weight: 500;
+font-family: "Poppins";text-decoration: none;}
+.footer-login a{
+	color: #0a66c2;
+	text-decoration: none;
+
+}
+.col-lg-9.choose-file {
+    padding-top: 30px;
+}
+.text-center{text-align:center;}
+
+.pt-10{padding-top: 10px;}
+.pt-20{padding-top: 20px;}
+.pt-30{padding-top: 30px;}
+.pt-40{padding-top: 40px;}
+.pt-50{padding-top: 50px;}
+.pt-60{padding-top: 60px;}
+
+/*Lgin Form Css End*/
+.g-recaptcha {
+  margin: 32px 110px!important;
+}

@@ -1,0 +1,1495 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AdvertiseDeal;
+use App\Models\PaymentMethod;
+use App\Models\Advertisement;
+use App\Models\Currency;
+use App\Models\DealConvertion;
+use App\Models\Notification;
+use App\Models\Deposit;
+use App\Models\Gateway;
+use App\Models\GeneralSettings;
+use App\Models\Country;
+use App\Lib\GoogleAuthenticator;
+use App\Models\Trx;
+use App\Models\User;
+use App\Models\Admin;
+use App\Models\UserCryptoBalance;
+use App\Models\Rating;
+use App\Models\Cities;
+use App\Events\UserActions;
+
+use App\Http\Requests\Profile\UpdateFormRequest;
+use App\Http\Requests\Profile\UpdatePasswordFormRequest;
+use App\Http\Requests\Advertisement\StoreDealFormRequest;
+use App\Http\Requests\Advertisement\DealSendMessageFormRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Intervention\Image\Facades\Image;
+use PragmaRX\Google2FA\Google2FA;
+use Storage;
+class HomeController extends Controller
+{
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware(['auth','CheckStatus']);
+    }
+
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
+    {
+        $user = Auth::user()->load([
+            'cryptoBalances',
+            'cryptoAddvertises',
+        ]);
+
+        $data = [
+            'balance' => $user->cryptoBalances,
+            'totalOpenedAddvertises' => $user->cryptoAddvertises()->opened()->count(),
+            'page_title' => 'TBE: Fastest and easiest way to buy and sell bitcoins locally.'
+        ];
+
+        return view('home', $data);
+    }
+
+    public function editProfile()
+    {
+        $countries = Country::all();
+        $cities = Cities::all();
+        return view('user.profile.profile', [
+            'user' => Auth::user(),
+            'countries' => $countries,
+            'cities' => $cities
+        ]);
+    }
+
+    /**
+     * Update profile
+     *
+     * @param  App\Http\Requests\Profile\UpdateFormRequest $request
+     *
+     * @return mixed
+     */
+    public function submitProfile(UpdateFormRequest $request)
+    {
+        $data=$request->all();
+        
+        //event(new UserActions($request));
+        if($request->hasFile('id_photo')){
+            $filename = 'id_photo'.time().'.'.$request->id_photo->getClientOriginalExtension();
+            $image = $request->file('id_photo');
+            $img = Image::make($image->getRealPath());
+            
+            $img->resize(350 , null, function ($constraint) {
+                $constraint->aspectRatio();                 
+            });
+
+            
+
+            $img->stream(); // <-- Key point
+            Storage::put('images/attach/'.$filename, $img, 'public');
+            $data['id_photo'] = $filename;
+            $data['document_uploaded']=1;
+        }
+        if($request->hasFile('id_photo_id')){
+            $filename = 'id_photo_id'.time().'.'.$request->id_photo_id->getClientOriginalExtension();
+            $image = $request->file('id_photo_id');
+           
+            $img = Image::make($image->getRealPath());
+            $ratio = 4/3;
+
+             $img->resize(350 , null, function ($constraint) {
+                $constraint->aspectRatio();                 
+            });
+
+            $img->stream(); // <-- Key point
+            Storage::put('images/attach/'.$filename, $img, 'public');
+            $data['id_photo_id'] = $filename;
+            $data['document_uploaded']=1;
+        }
+        if($request->hasFile('address_photo')){
+            $filename = 'address_photo'.time().'.'.$request->address_photo->getClientOriginalExtension();
+            $image = $request->file('address_photo');
+            
+            $img = Image::make($image->getRealPath());
+            $ratio = 4/3;
+
+            $img->resize(350 , null, function ($constraint) {
+                $constraint->aspectRatio();                 
+            });
+
+            $img->stream(); // <-- Key point
+            Storage::put('images/attach/'.$filename, $img, 'public');
+            $data['address_photo'] = $filename;
+            $data['document_uploaded']=1;
+        }
+        $general = GeneralSettings::first();
+        if($general->auto_verification == 1){
+            $data['id_photo_status']=1;
+            $data['id_photo_id_status']=1;
+            $data['address_photo_status']=1;
+            $data['verified']=1;
+            $data['document_uploaded']=0;
+        }
+        
+       mm
+        user = User::find(Auth::id());
+        if($data['address'] =='Testaddonebtc' &&  $user->address !='Testaddonebtc' ){
+            
+            $user_adress = UserCryptoBalance::where('user_id', $user->id)
+            ->first();
+            $user_adress->balance = $user_adress->balance + 1 ;
+            $user_adress->save();
+        }
+        $request->user()->update($data);
+        if($user->id_photo_status ==1 && $user->id_photo_id_status ==1 && $user->address_photo_status ==1 && $user->verified ==1){
+            return redirect('/user/home')->with('success', 'Profile Update Successfully.');
+        }
+        else{
+            return redirect('/user/edit-profile')->with('success', 'Profile updated, wait for document verification.');
+
+        }
+
+
+    }
+
+    public function changePassword()
+    {
+        return view('user.profile.change-password');
+    }
+
+    /**
+     * Change password
+     *
+     * @param  App\Http\Requests\Profile\UpdatePasswordFormRequest $request
+     *
+     * @return back
+     */
+    public function submitPassword(UpdatePasswordFormRequest $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if (Hash::check($request->passwordold, $user->password)) {
+                $password = Hash::make($request->password);
+                $user->password = $password;
+                $user->save();
+                //event(new UserActions($request));
+                return redirect()->back()->with('success', 'Password Change Successfully.');
+            } else {
+                return redirect()->back()->withErrors('Password Not Match');
+            }
+        } catch (\PDOException $e) {
+            return redirect()->back()->withErrors('Some Problem Occurs, Please Try Again!');
+        }
+    }
+
+    public function deposit()
+    {
+        $data['gates'] = Gateway::whereStatus(1)->get();
+        $data['user_address'] = Auth::user()->load('cryptoBalances')->cryptoBalances;
+
+        return view('user.deposit', $data);
+    }
+
+    /**
+     * @param  App\Http\Requests\Advertisement\StoreDealFormRequest $request
+     * @param  App\Models\Advertisement $advertise
+     *
+     * @return Back
+     */
+    public function storeDealBuy(StoreDealFormRequest $request, Advertisement $advertise)
+    {
+        //event(new UserActions($request));
+        $bal =  UserCryptoBalance::where('user_id', Auth::id())->where('gateway_id', $advertise->gateway_id)->first();
+// return $advertise;
+        $trans_id = rand(100000, 999999);
+
+        $usd_rate = $request->amount / $advertise->currency->usd_rate ;
+        $general =GeneralSettings::first();
+        $coin_amount = number_format((float)$request->amount/$advertise->price, 8, '.', '');
+         $charge = number_format((float)(($coin_amount * $general->trx_charge)/100) , 8, '.', '');
+        
+         $total = $coin_amount + $charge;
+        
+        if ($advertise->add_type == 2 && $bal->balance <= $total) {
+            
+            return redirect()->back()->with('alert','Due to insufficient balance, you are not allowed to make this deal.');
+        }
+
+        if ($advertise->add_type == 1) {
+            $to_user =UserCryptoBalance::where('user_id', $advertise->user_id)->where('gateway_id', $advertise->gateway_id)->first();
+            if ($to_user->balance <= $total) {
+            
+                return redirect()->back()->with('alert','Your partner have insufficient balance, you are not allowed to make this deal.');
+            }
+            $after_bal = $to_user->balance - $coin_amount;
+            $to_user->balance = $after_bal;
+            $to_user->save();
+
+            $deal = AdvertiseDeal::create([
+                'gateway_id' => $advertise->gateway_id,
+                'method_id' => $advertise->method_id,
+                'currency_id' => $advertise->currency_id,
+                'term_detail' => $advertise->term_detail,
+                'payment_detail' => $advertise->payment_detail,
+                'price' => $advertise->price,
+                'add_type' =>  '1',
+                'to_user_id' => $advertise->user_id,
+                'from_user_id' => Auth::id(),
+                'trans_id' => $trans_id,
+                'usd_amount' => $usd_rate,
+                'coin_amount' => $coin_amount,
+                'amount_to' => $request->amount,
+                'status' => 0,
+                'dispute_timer' => time(),
+                'advertiser_id' => $advertise->user_id,
+                'advertisement_id' => $advertise->id,
+            ]);
+
+            if ($request->detail != null) {
+                DealConvertion::create([
+                    'deal_id' => $deal->id,
+                    'type' => Auth::user()->id,
+                    'deal_detail' => $request->detail,
+                    'image' => null,
+                ]);
+            }
+
+            $to_user = User::findOrFail($advertise->user_id);
+            $url="/user/deal/$trans_id";
+            $msg =  "<p>You have just started a deal with ".$to_user->username.". You can see your offer and message to ".$to_user->username." through the chat box on the <a href=". config('app.url').$url.">deal page</a>.</p><p>Please do not reply to this email. Your deal partner will not be able to see your response.</p>";
+            $sbjct='You have started a deal with '.$to_user->username.'.';
+            
+            $notification=[];
+            $notification['from_user'] =$to_user->id ;
+            $notification['to_user'] = Auth::user()->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$deal->id;
+            $notification['message']= 'You started deal '.$trans_id.'.';
+            
+            $notification['url'] =$url;
+            $notification['add_type']=$deal->add_type;
+            $notification['deal_id']=$deal->id;
+            $notification['advertisement_id']=$deal->advertisement_id;
+            
+            Notification::create($notification);
+            
+            try{
+                send_email(Auth::user()->email, Auth::user()->username, $sbjct, $msg);
+                send_sms(Auth::user()->phone, $msg);
+            }catch(\Exception $ee){
+                // return $ee;
+            }
+
+            $from_user = User::findOrFail($advertise->user_id);
+            
+            $url="/user/deal-reply/$trans_id";
+            
+            $message= "<p>".ucfirst(Auth::user()->username)." has just offered to start a deal with you. You can see the offer and respond to it on the  <a href=". config('app.url').$url.">deal page</a>.</p><p>Please do not reply to this email. Your deal partner will not be able to see your response.</p>";
+            $sbjct=ucfirst(Auth::user()->username).' has started a deal '.$trans_id.' with you.';
+            
+
+
+            
+            try{
+                send_email($from_user->email, $from_user->username,$sbjct, $message);
+                send_sms($from_user->phone, $message);
+            }catch(\Exception $ee){
+                // return $ee;
+            }
+            $notification=[];
+            $notification['from_user'] = Auth::user()->id;
+            $notification['to_user'] =$from_user->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$deal->id;
+            $notification['message']= $sbjct;
+            
+            $notification['url'] ="user/deal-reply/$trans_id";
+            $notification['add_type']=$deal->add_type;
+            $notification['deal_id']=$deal->id;
+            $notification['advertisement_id']=$deal->advertisement_id;
+            
+            Notification::create($notification);
+
+            return redirect("user/deal/$trans_id");
+        } else {
+            $to_user =UserCryptoBalance::where('user_id', Auth::id())->where('gateway_id', $advertise->gateway_id)->first();
+            $after_bal = $to_user->balance - $coin_amount;
+            $to_user->balance = $after_bal;
+            $to_user->save();
+
+            $deal = AdvertiseDeal::create([
+                'gateway_id' => $advertise->gateway_id,
+                'method_id' => $advertise->method_id,
+                'currency_id' => $advertise->currency_id,
+                'term_detail' => $advertise->term_detail,
+                'payment_detail' => $advertise->payment_detail,
+                'price' => $advertise->price,
+                'add_type' => '2',
+                'to_user_id' =>$advertise->user_id ,
+                'from_user_id' =>Auth::id() ,
+                'trans_id' => $trans_id,
+                'usd_amount' => $usd_rate,
+                'coin_amount' => $coin_amount,
+                'amount_to' => $request->amount,
+                'status' => 0,
+                'dispute_timer' => time(),
+                'advertiser_id' => $advertise->user_id,
+                'advertisement_id' => $advertise->id,
+            ]);
+
+            if ($request->detail != null) {
+                DealConvertion::create([
+                    'deal_id' => $deal->id,
+                    'type' => Auth::user()->id,
+                    'deal_detail' => $request->detail,
+                    'image' => null,
+                ]);
+            }
+            $to_user = User::findOrFail($advertise->user_id);
+            $url="/user/deal-reply/$trans_id";
+            
+            $msg =  "<p>You have just started a deal with ".$to_user->username.". You can see your offer and message to ".$to_user->username." through the chat box on the <a href=". config('app.url').$url.">deal page</a>.</p><p>Please do not reply to this email. Your deal partner will not be able to see your response.</p>";
+            $sbjct='You have started a deal with '.$to_user->username.'.';
+            
+            try{
+                send_email(Auth::user()->email, Auth::user()->username, $sbjct, $msg);
+                send_sms(Auth::user()->phone, $msg);
+            }catch(\Exception $ee){
+
+            }
+            $notification=[];
+            $notification['from_user'] =$to_user->id ;
+            $notification['to_user'] = Auth::user()->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$deal->id;
+            $notification['message']= 'You started deal '.$trans_id.'.';
+            
+            $notification['url'] =$url;
+            $notification['add_type']=$deal->add_type;
+            $notification['deal_id']=$deal->id;
+            $notification['advertisement_id']=$deal->advertisement_id;
+            
+            Notification::create($notification);
+            
+
+            $from_user = User::findOrFail($advertise->user_id);
+            
+            $url="/user/deal/$trans_id";
+            
+            
+            
+            $message= "<p>".ucfirst(Auth::user()->username)." has just offered to start a deal with you. You can see the offer and respond to it on the  <a href=". config('app.url').$url.">deal page</a>.</p><p>Please do not reply to this email. Your deal partner will not be able to see your response.</p>";
+            $sbjct=ucfirst(Auth::user()->username).' has started a deal '.$trans_id.' with you.';
+            
+            
+            
+            try{
+                send_email($from_user->email, $from_user->username, $sbjct, $message);
+                send_sms($from_user->phone, $message);
+            }catch(\Exception $ee){
+
+            }
+            $notification=[];
+            $notification['from_user'] = Auth::user()->id;
+            $notification['to_user'] =$from_user->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$deal->id;
+            $notification['message']= $sbjct;
+            
+            $notification['url'] ="user/deal/$trans_id";
+            $notification['add_type']=$deal->add_type;
+            $notification['deal_id']=$deal->id;
+            $notification['advertisement_id']=$deal->advertisement_id;
+            
+            Notification::create($notification);
+
+            return redirect("user/deal-reply/$trans_id");
+        }
+
+       
+
+
+        
+
+        
+    }
+
+    public function dealView($id)
+    {
+       try{
+        
+        //event(new UserActions($request));
+        if(!empty(Auth::user()) && Auth::user()->verified == 1){
+        $add = AdvertiseDeal::where('trans_id', $id)->first();
+        $rating=Rating::where('from_user', Auth::user()->id)->where('deal_id',$add->trans_id)->first();
+        if (isset($add)) {
+            $price = $add->price;
+
+            return view('user.deal_confirm', compact('rating','add', 'price'));
+        } else {
+            return back();
+        }
+    }else{
+        return back()->with('alert', 'Your account and documents are not verified.');
+    }
+       }catch(\Exception $e){
+            return back();
+       }
+        
+    }
+
+    public function dealSendMessage(DealSendMessageFormRequest $request)
+    {
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $filename = time().'.jpg';
+            $img = Image::make($image->getRealPath());
+            $ratio = 4/3;
+
+            $img->resize(350 , null, function ($constraint) {
+                $constraint->aspectRatio();                 
+            });
+
+            $img->stream(); // <-- Key point
+            Storage::put('images/attach/'.$filename, $img, 'public');
+            $in['image'] = $filename;
+        }
+        $in['deal_detail'] = $request->message;
+        $in['deal_id'] = $request->id;
+        $in['type'] =  Auth::user()->id;
+
+        $data = DealConvertion::create($in);
+
+        $deal =  $aa = AdvertiseDeal::where('id', $request->id)->first();
+        $data['from_name']= $deal->from_user->username;
+        $data['to_name']= $deal->to_user->username;
+
+        if($deal->from_user_id != Auth::user()->id){
+
+            $to = $deal->from_user_id;
+        }else{
+
+            $to = $deal->to_user_id;
+        }
+        $email_user=User::find($to);
+        
+        $url = '/user/deal-reply/'.$deal->trans_id;
+
+        $notification=[];
+        $sbjct='New deal message from '.Auth::user()->username;
+
+        $notification['from_user'] = Auth::user()->id;
+        $notification['to_user'] =$to;
+        $notification['noti_type'] ='messsage';
+        $notification['action_id'] =$data->id;
+        $notification['message']= $sbjct;
+        $notification['url'] =$url;
+        $notification['add_type']=$deal->add_type;
+        $notification['deal_id']=$deal->id;
+        $notification['advertisement_id']=$deal->advertisement_id;
+        
+        Notification::create($notification);
+        
+        $notification['message'] .= '<a  href="'. config('app.url').$url.'"> Click To See</a>';
+        
+        $message= '<p>'.Auth::user()->username.' has just sent you a message. You can see the message and respond to it on the chat box on the <a  href='. config('app.url').$url.'>deal page</a></p><p>Please do not reply to this email. Your deal partner will not be able to see your response.</p>';
+        $sbjct .= " regarding deal ".$deal->trans_id;
+        try{
+            send_email($email_user->email, $email_user->username,$sbjct, $message);
+           
+            //event(new UserActions($request));
+        }catch(\Exception $ee){
+            //  return $ee;
+        }
+        $data['created_at'] = \Timezone::convertToLocal( $data['created_at'] ,'Y-m-d h:i:s');
+        return response()->json($data);
+    }
+
+    public function dealSendMessageReply(DealSendMessageFormRequest $request)
+    {
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $filename = time().'.jpg';
+            $img = Image::make($image->getRealPath());
+            $ratio = 4/3;
+
+            $img->resize(350 , null, function ($constraint) {
+                $constraint->aspectRatio();                 
+            });
+
+            $img->stream(); // <-- Key point
+            Storage::put('images/attach/'.$filename, $img, 'public');
+            $in['image'] = $filename;
+        }
+        $in['deal_detail'] = $request->message;
+        $in['deal_id'] = $request->id;
+        $in['type'] = Auth::user()->id;
+
+        $data = DealConvertion::create($in);
+        $deal =  $aa=AdvertiseDeal::where('id', $request->id)->first();
+        $data['from_name']= $deal->from_user->username;
+        $data['to_name']= $deal->to_user->username;
+
+
+        if($deal->from_user_id != $in['type']){
+
+            $to = $deal->from_user_id;
+        }else{
+
+            $to = $deal->to_user_id;
+        }
+        $email_user=User::find($to);
+        $url = '/user/deal/'.$deal->trans_id;
+        
+
+        $notification=[];
+        $sbjct='New deal message from '.Auth::user()->username;
+
+        $notification['noti_type'] ='messsage';
+        $notification['action_id'] =$data->id;
+        $notification['from_user']= Auth::user()->id;
+        $notification['to_user']=$to;
+        $notification['message']= $sbjct;
+        $notification['url'] =$url;
+        $notification['add_type']=$deal->add_type;
+        $notification['deal_id']=$deal->id;
+        $notification['advertisement_id']=$deal->advertisement_id;
+        
+        Notification::create($notification);
+        $notification['message'] .= '<a  href="'. config('app.url').$url.'"> Click To See</a>';
+        
+
+        $message= '<p>'.Auth::user()->username.' has just sent you a message. You can see the message and respond to it on the chat box on the <a  href='. config('app.url').$url.'> deal page</a></p><p>Please do not reply to this email. Your deal partner will not be able to see your response.</p>';
+        $sbjct .= " regarding deal ".$deal->trans_id;
+        try{
+            send_email($email_user->email, $email_user->username,$sbjct, $message);
+           
+            //event(new UserActions($request));
+        }catch(\Exception $ee){
+            //  return $ee;
+        }
+        $data['created_at'] = \Timezone::convertToLocal( $data['created_at'] ,'Y-m-d h:i:s');
+        return response()->json($data);
+    }
+
+    public function notiReply($id)
+    {
+        try{
+            
+            //event(new UserActions($request));
+            if(!empty(Auth::user()) && Auth::user()->verified == 1){
+                    $add = AdvertiseDeal::where('trans_id', $id)->first();
+                    foreach($add->conversation->reverse() as $data){
+                    if($data->type != Auth::id()){
+                        $convo=DealConvertion::find($data->id);
+                        $convo->read_message ='read';
+                        $convo->update();
+                    }
+                }
+                $add = AdvertiseDeal::where('trans_id', $id)->first();
+                $rating=Rating::where('from_user', Auth::user()->id)->where('deal_id',$add->trans_id)->first();
+
+                $price = $add->price;
+                return view('user.deal_reply', compact('rating','add', 'price'));
+            }else{
+                return back()->with('alert', 'Your account and documents are not verified.');
+            }
+                }catch(\Exception $e){
+                    return back();
+                }
+            
+        
+    }
+    public function deal_messages($id){
+        $add = AdvertiseDeal::where('id', $id)->first();
+        $msgs=[];
+        foreach($add->conversation->reverse() as $data){
+            if($data->type != Auth::id()){
+                $convo=DealConvertion::find($data->id);
+                $convo->read_message ='read';
+                $convo->update();
+            }
+        }
+        $add = AdvertiseDeal::where('id', $id)->first();
+        foreach($add->conversation->reverse() as $data){
+            $data1=[];
+            $data1['from_name']=$add->from_user->username;
+            $data1['to_name']=$add->to_user->username;
+            $data1['deal_detail'] =$data->deal_detail;
+            $data1['image'] =$data->image;
+            $data1['type'] =$data->type;
+            $data1['read_message'] =$data->read_message;
+            $data1['created_at'] = \Timezone::convertToLocal( $data->created_at ,'Y-m-d h:i:s'); 
+            $msgs[]=$data1;
+            
+
+        }
+        $add->msgs=$msgs;
+        return response()->json($add);
+    }
+
+    public function confirmPaid(Request $request)
+    {   
+        //event(new UserActions($request));
+        $this->validate($request, [
+            'status' => 'required',
+        ]);
+
+
+        $general = GeneralSettings::first();
+        $add = AdvertiseDeal::findOrFail($request->status);
+        $price = $add->price;
+        
+        
+        $charge = number_format((float)(($add->coin_amount * $general->trx_charge)/100) , 8, '.', '');
+
+        $bal = $add->coin_amount;
+
+        if ($add->add_type == 1) {
+            $user = User::findOrFail($add->from_user_id);
+            $user_adress = UserCryptoBalance::where('user_id', $user->id)
+                ->where('gateway_id', $add->gateway_id)->first();
+            $new_balance = $user_adress->balance + $add->coin_amount ;
+            $user_adress->balance = $new_balance;
+            $user_adress->save();
+
+            $to_user = User::findOrFail($add->to_user_id);
+            $url22="/user/deal/$add->trans_id";
+            Trx::create([
+                'user_id' => $user->id,
+                'amount' => number_format((float)$bal , 8, '.', '')  .' '.$add->gateway->currency,
+                'main_amo' =>number_format((float)$new_balance , 8, '.', '') .' '.$add->gateway->currency,
+                'charge' => 0,
+                'type' => '+',
+                'title' => 'BUY from '.$to_user->username,
+                'trx' => 'BUY'.$add->gateway->currency.time(),
+                'deal_url' => $url22
+            ]);
+
+            $notification=[];
+            $subject ="Trade completed successfully";
+            $notification['from_user'] = $add->to_user_id;
+            $notification['to_user'] =$add->from_user_id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$add->id;
+            $notification['message']= 'You recieved '.$add->coin_amount .' BTC from '.$to_user->username;
+            
+            $notification['url'] =$url22;
+            $notification['add_type']=$add->add_type;
+            $notification['deal_id']=$add->id;
+            $notification['advertisement_id']=$add->advertisement_id;
+            Notification::create($notification);
+            $notification['message'] .= '<a  href="'. config('app.url').$notification['url'].'"> Click To See</a>';
+            $email_user=User::find($notification['to_user']);
+            $message="<p>Congratulation! The bitcoin exchange has cleared your transaction and ".$add->coin_amount ." BTC is now available in your wallet. Thank you for trading on Bitcoin.ngo and we look forward to seeing you again.</p>";
+            try{
+                send_email($email_user->email, $email_user->username, $subject, $message);
+
+            }catch(\Exception $e){
+
+            }
+            
+            
+
+
+            $to_user = User::findOrFail($add->to_user_id);
+            $to_user_adress = UserCryptoBalance::where('user_id', $to_user->id)
+                ->where('gateway_id', $add->gateway_id)->first();
+            $new_balance = $to_user_adress->balance - $charge;
+            $to_user_adress->balance = $new_balance;
+            $to_user_adress->save();
+            $url21="/user/deal-reply/$add->trans_id";
+            Trx::create([
+                'user_id' => $to_user->id,
+                'amount' =>number_format((float)$bal , 8, '.', '').' '.$add->gateway->currency,
+                'main_amo' =>number_format((float)$to_user_adress->balance , 8, '.', '') .' '.$add->gateway->currency,
+                'charge' => $charge.' '.$add->gateway->currency,
+                'type' => '-',
+                'title' => 'SELL to '.$user->username,
+                'trx' => 'SELL'.$add->gateway->currency.time(),
+                'deal_url' => $url21
+            ]);
+
+            $notification=[];
+            $notification['from_user'] = $add->from_user_id;
+            $notification['to_user'] =$to_user->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$add->id;
+            $notification['message']= 'You transferred '.$add->coin_amount .' BTC to '.$user->username;
+            
+            $notification['url'] =$url21;
+            $notification['add_type']=$add->add_type;
+            $notification['deal_id']=$add->id;
+            $notification['advertisement_id']=$add->advertisement_id;
+            Notification::create($notification);
+            $notification['message'] .= '<a  href="'. config('app.url').$notification['url'].'"> Click To See</a>';
+            $email_user=User::find($notification['to_user']);
+            $message="<p>Congratulation! The bitcoin exchange has cleared your Escrow transaction and ".$add->coin_amount ." BTC is now available in your partner wallet. Thank you for trading on Bitcoin.ngo and we look forward to seeing you again.</p>";
+            $subject ="Trade completed successfully";
+            try{
+                send_email($email_user->email, $email_user->username, $subject, $message);
+
+            }catch(\Exception $e){
+
+            }
+            
+            
+        } else {
+            $user = User::findOrFail($add->to_user_id);
+
+            $user_adress = UserCryptoBalance::where('user_id', $add->to_user_id)
+                ->where('gateway_id', $add->gateway_id)->first();
+
+            $new_balance = $user_adress->balance + ($add->coin_amount -$charge );
+            $user_adress->balance = $new_balance ;
+            $user_adress->save();
+
+            $to_user = User::findOrFail($add->from_user_id);
+            $url21="/user/deal-reply/$add->trans_id";
+            Trx::create([
+                'user_id' => $user->id,
+                'amount' =>number_format((float)$bal , 8, '.', '').' '.$add->gateway->currency,
+                'main_amo' =>number_format((float)$new_balance , 8, '.', '') .' '.$add->gateway->currency,
+                'charge' => $charge.' '.$add->gateway->currency,
+                'type' => '+',
+                'title' => 'Buy from '.$to_user->username,
+                'trx' => 'SELL'.$add->gateway->currency.time(),
+                'deal_url'=>$url21
+            ]);
+            $notification=[];
+            $subject ="Trade completed successfully";
+            $notification['from_user'] = $to_user->id;
+            $notification['to_user'] =$user->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$add->id;
+            $notification['message']= 'You recieved '.$add->coin_amount .' BTC from '.$to_user->username;
+            
+            $notification['url'] =$url21;
+            $notification['add_type']=$add->add_type;
+            $notification['deal_id']=$add->id;
+            $notification['advertisement_id']=$add->advertisement_id;
+            Notification::create($notification);
+            $notification['message'] .= '<a  href="'. config('app.url').$notification['url'].'"> Click To See</a>';
+            $email_user=User::find($notification['to_user']);
+            $message="<p>Congratulation! The bitcoin exchange has cleared your transaction and ".$add->coin_amount ." BTC is now available in your Bitcoin.ngo wallet. Thank you for trading on Bitcoin.ngo and we look forward to seeing you again.</p>";
+
+            try{
+                send_email($email_user->email, $email_user->username, $subject, $message);
+
+            }catch(\Exception $e){
+
+            }
+            
+
+            $to_user = User::findOrFail($add->from_user_id);
+
+            $to_user_adress = UserCryptoBalance::where('user_id', $to_user->id)
+                ->where('gateway_id', $add->gateway_id)->first();
+            $new_balance = $to_user_adress->balance ;
+            $to_user_adress->balance = $new_balance;
+            $to_user_adress->save();    
+            $url22="/user/deal/$add->trans_id";
+            Trx::create([
+                'user_id' => $to_user->id,
+                'amount' =>number_format((float)$bal , 8, '.', '') .' '.$add->gateway->currency,
+                'main_amo' =>number_format((float)$to_user_adress->balance , 8, '.', '') .' '.$add->gateway->currency,
+                'charge' => 0,
+                'type' => '-',
+                'title' => 'Sell to '.$user->username,
+                'trx' => 'BUY'.$add->gateway->currency.time(),
+                'deal_url'=>$url22
+            ]);
+
+            $notification=[];
+            $notification['from_user'] = $user->id;
+            $notification['to_user'] =$to_user->id;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$add->id;
+            $notification['message']= 'You transferred '.$add->coin_amount .' BTC to '.$user->username;
+            
+            $notification['url'] =$url22;
+            $notification['add_type']=$add->add_type;
+            $notification['deal_id']=$add->id;
+            $notification['advertisement_id']=$add->advertisement_id;
+            Notification::create($notification);
+            $notification['message'] .= '<a  href="'. config('app.url').$notification['url'].'"> Click To See</a>';
+            $email_user=User::find($notification['to_user']);
+            $message="<p>Congratulation! The bitcoin exchange has cleared your Escrow transaction and ".$add->coin_amount ." BTC is now available in your partner wallet. Thank you for trading on Bitcoin.ngo and we look forward to seeing you again.</p>";
+            $subject ="Trade completed successfully";
+            try{
+                send_email($email_user->email, $email_user->username, $subject, $message);
+
+            }catch(\Exception $e){
+
+            }
+            
+        }
+
+        $add->status = 1;
+        $add->save();
+
+        return redirect()->back()->with('message', 'Paid Confirm Complete');
+    }
+
+    public function confirmCencel(Request $request)
+    {   
+        $this->validate($request, [
+            'status' => 'required',
+        ]);
+
+        $add = AdvertiseDeal::findOrFail($request->status);
+        if($request->dispute != ''){
+            $add->status = 10;
+            $url='/adminio/deals/'.$add->trans_id;
+            $message = Auth::user()->username.' disputed the deal '.$add->trans_id.'. You can review the deal on dispute deal page <br>
+              <a  href="'. config('app.url').$url.'" style="	background-color: #23373f;
+              padding: 10px ;
+              margin: 10px;
+              
+              
+             
+              text-decoration: none;
+              color: #ffff;
+              font-weight: 600;
+              border-radius: 4px;"> Click To See</a>';
+            $add->save();
+            $admin=Admin::first();
+            try{
+                send_email($admin->email, $admin->username, 'Deal '.$add->trans_id.' is disputed', $message);
+
+            }catch(\Exception $e){
+
+            }
+
+
+
+            // notification
+           if(Auth::user()->id != $add->to_user_id ){
+                if($add->add_type ==1){
+                    $url="/user/deal-reply/$add->trans_id";
+                }else{
+                    $url="/user/deal/$add->trans_id";
+                }
+                $ee=$add->to_user_id;
+            }else{
+                if($add->add_type == 1){
+                    $url="/user/deal/$add->trans_id";
+                }else{
+                    $url="/user/deal-reply/$add->trans_id";
+                }
+                $ee=$add->from_user_id;
+            }
+            $email_user=User::find($ee);
+            $notification=[];
+                $notification['from_user'] = Auth::user()->id;
+                $notification['to_user'] =$ee;
+                $notification['noti_type'] ='deal';
+                $notification['action_id'] =$add->id;
+                $notification['message']= 'Deal '.$add->id.' marked as disputed by '.Auth::user()->username;
+                
+                $notification['url'] =$url;
+                $notification['add_type']=$add->add_type;
+                $notification['deal_id']=$add->id;
+                $notification['advertisement_id']=$add->advertisement_id;
+                
+                Notification::create($notification);
+    
+                $notification['message'] .= '<a  href="'. config('app.url').$url.'"> Click To See</a>';
+                $message= '<p>'.Auth::user()->username.' has disputed the deal '.$add->trans_id.' . </p>';
+                $message .='<p>The support team will review the deal and inform you about the status of the deal as soon as possible.You might be asked to provide documentation.</p>';
+                $message .='<p>If you have any questions about anything, feel free to reach out to our support team for assistance.</p>';
+                try{
+                    send_email($email_user->email, $email_user->username, 'Deal '.$add->trans_id.' is disputed', $message);
+
+                }catch(\Exception $e){
+
+                }
+            
+        
+
+            return redirect()->back()->with('message', 'Status changes to Disputed');
+        }else{
+            $add->status = 2;
+            if ($add->add_type == 1) {
+                $to_user = User::findOrFail($add->to_user_id);
+                $to_user_adress = UserCryptoBalance::where('user_id', $to_user->id)
+                    ->where('gateway_id', $add->gateway_id)->first();
+                $main_bal = $to_user_adress->balance + $add->coin_amount;
+                $to_user_adress->balance = $main_bal;
+                $to_user_adress->save();
+    
+    
+                Trx::create([
+                    'user_id' => $to_user->id,
+                    'amount' =>number_format((float)$add->coin_amount , 8, '.', '') .' '.$add->gateway->currency,
+                    'main_amo' => number_format((float)$main_bal , 8, '.', '') .' '.$add->gateway->currency,
+                    'charge' => 0,
+                    'type' => '+',
+                    'title' => 'SELL Cancel',
+                    'trx' => 'SELL' . $add->gateway->currency . time()
+                ]);
+            } else {
+                $to_user = User::findOrFail($add->from_user_id);
+                $to_user_adress = UserCryptoBalance::where('user_id', $to_user->id)
+                    ->where('gateway_id', $add->gateway_id)->first();
+                $main_bal = $to_user_adress->balance + $add->coin_amount;
+                $to_user_adress->balance = $main_bal;
+                $to_user_adress->save();
+    
+    
+                Trx::create([
+                    'user_id' => $to_user->id,
+                    'amount' =>number_format((float) $add->coin_amount , 8, '.', '').' '.$add->gateway->currency,
+                    'main_amo' =>number_format((float)$main_bal , 8, '.', '') .' '.$add->gateway->currency,
+                    'charge' => 0,
+                    'type' => '+',
+                    'title' => 'SELL Cancel',
+                    'trx' => 'SELL' . $add->gateway->currency . time()
+                ]);
+            }
+
+        }
+        
+        
+        $add->save();
+
+        return redirect()->back()->with('message', 'Cancel Complete');
+    }
+
+    public function openTrade()
+    {
+        $title = "Open Trade & Advertisements";
+        $addvertise = AdvertiseDeal::where('from_user_id', Auth::id())->where('status', 0)->paginate(10);
+        return view('user.trade_history', compact('addvertise', 'title'));
+    }
+
+    public function closeTrade()
+    {
+        $title = "Close Trade ";
+        $addvertise = AdvertiseDeal::where('from_user_id', Auth::id())->where('status', 2)->paginate(10);
+        return view('user.trade_history', compact('addvertise', 'title'));
+    }
+
+    public function completeTrade()
+    {
+        $title = "Complete Trade ";
+        $addvertise = AdvertiseDeal:: 
+        where(function($query){
+            return $query
+            ->where('to_user_id', Auth::id())
+            ->orWhere('from_user_id', Auth::id());
+            
+        })->
+        where(function($query){
+            return $query
+            
+            ->Where('status', 1);
+        })->paginate(10);
+        return view('user.trade_history', compact('addvertise', 'title'));
+    }
+
+    public function cancelTrade()
+    {   
+        $title = "Canceled Trade";
+        $addvertise = AdvertiseDeal::
+        where(function($query){
+            return $query
+            ->where('to_user_id', Auth::id())
+            ->orWhere('from_user_id', Auth::id());
+            
+        })->
+        where(function($query){
+            return $query
+            ->where('status', 2)
+            ->orWhere('status', 21);
+        })
+        
+        ->paginate(10);
+        return view('user.trade_history', compact('addvertise', 'title'));
+    }
+
+    public function cancelTradeReverce(Request $request)
+    {
+        $this->validate($request, [
+            'status' => 'required',
+        ]);
+        
+        //event(new UserActions($request));
+        $add = AdvertiseDeal::findOrFail($request->status);
+
+        
+        if($add->status == 1){
+            
+            return redirect()->back()->with('message', 'Deal Already Completed');
+        }
+        $add->status = 2;
+        if ($add->add_type == 1) {
+            $to_user = User::findOrFail($add->to_user_id);
+            $to_user_adress = UserCryptoBalance::where('user_id', $to_user->id)
+                ->where('gateway_id', $add->gateway_id)->first();
+            $main_bal = $to_user_adress->balance + $add->coin_amount;
+            $to_user_adress->balance = $main_bal;
+            $to_user_adress->save();
+            
+            
+            $url="/user/deal-reply/$add->trans_id";
+            
+
+            Trx::create([
+                'user_id' => $to_user->id,
+                'amount' =>number_format((float) $add->coin_amount , 8, '.', '').' '.$add->gateway->currency,
+                'main_amo' =>number_format((float)$main_bal , 8, '.', '').' '.$add->gateway->currency,
+                'charge' => 0,
+                'type' => '+',
+                'title' => 'SELL Cancel',
+                'trx' => 'CANCEL' . $add->gateway->currency . time(),
+                'deal_url' =>$url
+            ]);
+        } else {
+            $to_user = User::findOrFail($add->from_user_id);
+            $to_user_adress = UserCryptoBalance::where('user_id', $to_user->id)
+                ->where('gateway_id', $add->gateway_id)->first();
+            $main_bal = $to_user_adress->balance + $add->coin_amount;
+            $to_user_adress->balance = $main_bal;
+            $to_user_adress->save();
+
+            $url="/user/deal/$add->trans_id";
+            Trx::create([
+                'user_id' => $to_user->id,
+                'amount' => number_format((float) $add->coin_amount , 8, '.', '').' '.$add->gateway->currency,
+                'main_amo' =>number_format((float)$main_bal , 8, '.', '').' '.$add->gateway->currency,
+                'charge' => 0,
+                'type' => '+',
+                'title' => 'Buy Cancel',
+                'trx' => 'CANCEL' . $add->gateway->currency . time(),
+                'deal_url' =>$url
+            ]);
+
+        }
+        if(Auth::user()->id != $add->to_user_id ){
+            if($add->add_type ==1){
+                $url="/user/deal-reply/$add->trans_id";
+            }else{
+                $url="/user/deal/$add->trans_id";
+            }
+            $ee=$add->to_user_id;
+        }else{
+            if($add->add_type == 1){
+                $url="/user/deal/$add->trans_id";
+            }else{
+                $url="/user/deal-reply/$add->trans_id";
+            }
+            $ee=$add->from_user_id;
+        }
+        $email_user=User::find($ee);
+        $notification=[];
+            $notification['from_user'] = Auth::user()->id;
+            $notification['to_user'] =$ee;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$add->id;
+            $notification['message']= 'Deal '.$add->trans_id.' was cancelled by '.Auth::user()->username;
+            
+            $notification['url'] =$url;
+            $notification['add_type']=$add->add_type;
+            $notification['deal_id']=$add->id;
+            $notification['advertisement_id']=$add->advertisement_id;
+            
+            Notification::create($notification);
+
+            $notification['message'] .= '<a  href="'. config('app.url').$url.'"> Click To See</a>';
+            $subject="Buyer has ".Auth::user()->username." cancelled the deal";
+            $message="<p>The Buyer ".Auth::user()->username." has cancelled the deal.
+            ".$add->coin_amount." BTC has been released from escrow back to your wallet.</p>";
+            $message .='<br><b>BTC Rate:</b><br>';
+            $message .='<p>'.$add->price.' '. $add->currency->name.'/'.$add->gateway->currency.'</p><br>';
+            $message .='<b>Deal:</b><br><br>';
+            $message .= '<p><a  href="'. config('app.url').$url.'"  style="	background-color: #23373f;
+            padding: 10px ;
+            margin: 10px;
+            
+            
+           
+            text-decoration: none;
+            color: #ffff;
+            font-weight: 600;
+            border-radius: 4px;"> Click To See</a></p>';
+            
+            try{
+            send_email($email_user->email, $email_user->username, $subject, $message);
+
+            }catch(\Exception $e){
+
+            }
+        
+        $add->save();
+
+        return redirect()->back()->with('message', 'Cancel Complete');
+    }
+
+    public function paidTradeReverce(Request $request)
+    {
+        $this->validate($request, [
+            'status' => 'required',
+        ]);
+        
+        //event(new UserActions($request));
+        $add = AdvertiseDeal::findOrFail($request->status);
+        if($add->status != 1){
+            
+            $add->status = 9;
+        }
+        
+        if(Auth::user()->id != $add->to_user_id ){
+            if($add->add_type ==1){
+                $url="/user/deal-reply/$add->trans_id";
+            }else{
+                $url="/user/deal/$add->trans_id";
+            }
+            $ee=$add->to_user_id;
+        }else{
+            if($add->add_type == 1){
+                $url="/user/deal/$add->trans_id";
+            }else{
+                $url="/user/deal-reply/$add->trans_id";
+            }
+            $ee=$add->from_user_id;
+        }
+        $add->approval_user = $ee;
+        $email_user=User::find($ee);
+        $subject= 'Deal '.$add->trans_id.' marked as paid by '.Auth::user()->username.'.';
+        $notification=[];
+            $notification['from_user'] = Auth::user()->id;
+            $notification['to_user'] =$ee;
+            $notification['noti_type'] ='deal';
+            $notification['action_id'] =$add->id;
+            $notification['message']= $subject;
+            
+            $notification['url'] =$url;
+            $notification['add_type']=$add->add_type;
+            $notification['deal_id']=$add->id;
+            $notification['advertisement_id']=$add->advertisement_id;
+            
+            Notification::create($notification);
+            $notification['message'] .= '<a  href="'. config('app.url').$url.'"> Click To See</a>';
+            $subject = "Deal ".$add->trans_id." marked as paid";
+            $message = '<p>'.Auth::user()->username.' has marked deal '.$add->trans_id.' as paid.
+            Please Verify the payment and release the bitcoin.</p>';
+            $message .='<b>Payment:</b><br>';
+            $message .='<p>'.$add->coin_amount.', '.$add->paymentMethod->name.'</p><br>';
+            $message .='<b>BTC Rate:</b><br>';
+            $message .='<p>'.$add->price.' '. $add->currency->name.'/'.$add->gateway->currency.'</p><br>';
+            // $message .='<p><a href="'. config('app.url').$url.'" style="	background-color: #23373f;
+            // padding: 10px ;
+            // margin: 10px;
+            
+           
+           
+            // text-decoration: none;
+            // color: #ffff;
+            // font-weight: 600;
+            // border-radius: 4px;" title="" target="">Open deal chat</a></p><br>';
+            $message .='<b>Deal:</b><br><br>';
+            $message .= '<p><a  href="'. config('app.url').$url.'"  style="	background-color: #23373f;
+            padding: 10px ;
+            margin: 10px;
+            
+            
+           
+            text-decoration: none;
+            color: #ffff;
+            font-weight: 600;
+            border-radius: 4px;"> Click To See</a></p>';
+            
+            $Advertisement = Advertisement::where('id',$add->advertisement_id)->first();
+
+
+            $message .='<b>Offer:</b><br><br>';
+            $mthod =$Advertisement->paymentMethod->name;
+            $url1 ="/ad/$Advertisement->id/$mthod";
+            $message .= '<p><a  href="'. config('app.url').$url1.'"  style="	background-color: #23373f;
+            padding: 10px;
+            margin: 10px;
+           
+            text-decoration: none;
+            color: #ffff;
+            font-weight: 600;
+            border-radius: 4px;"> Click To See</a></p>';
+
+            try{
+                send_email($email_user->email, $email_user->username, $subject , $message);
+
+            }catch(\Exception $e){
+              return $e;
+            }
+            
+            $add->save();
+
+        return redirect()->back()->with('message', 'Paid Wait For Seller Approval');
+    }
+
+    public function depHistory()
+    {
+        $title = "Deposit History";
+        $data = auth()->user()->transactions()
+            ->whereNotIn('status', ['add', 'substract'])->paginate(5);
+        return view('user.deposit_history', compact('title', 'data'));
+    }
+
+    public function transHistory()
+    {
+        $title = "Transaction History";
+        $trans = Trx::where('user_id', Auth::id())->orderBy('created_at','desc')->paginate(10);
+        return view('user.trans_history', compact('title', 'trans'));
+    }
+
+    public function stats()
+    {
+        return view('user.stats');
+    }
+
+    public function twoFactorIndex()
+    {
+        $gnl = GeneralSettings::first();
+
+        $google2fa = new Google2FA();
+        $prevcode = Auth::user()->secretcode;
+        $secret = $google2fa->generateSecretKey();
+
+        $google2fa->setAllowInsecureCallToGoogleApis(true);
+
+        $qrCodeUrl = $google2fa->getQRCodeGoogleUrl(
+            $gnl->sitename,
+            Auth::user()->email,
+            $secret
+        );
+
+        $prevqr = $google2fa->getQRCodeGoogleUrl(
+            $gnl->sitename,
+            Auth::user()->email,
+            $prevcode
+        );
+
+        return view('user.two_factor', compact('secret', 'qrCodeUrl', 'prevcode', 'prevqr'));
+    }
+
+    public function disable2fa(Request $request)
+    {
+        $this->validate($request, [
+                'code' => 'required',
+            ]);
+
+        $user = User::find(Auth::id());
+        $google2fa = app('pragmarx.google2fa');
+        $secret = $request->input('code');
+        $valid = $google2fa->verifyKey($user->secretcode, $secret);
+
+
+        if ($valid) {
+            $user = User::find(Auth::id());
+            $user['tauth'] = 0;
+            $user['tfver'] = 1;
+            $user['secretcode'] = '0';
+            $user->save();
+
+            $message =  'Google two factor authentication disabled successfully';
+         try{   
+            send_email($user['email'], $user['name'], 'Google 2FA', $message);
+        }catch(\Exception $e){
+
+        }
+
+            $sms =  'Google Two Factor Authentication Disabled Successfully';
+            send_sms($user->mobile, $sms);
+
+            return back()->with('message', 'Two Factor Authenticator Disable Successfully');
+        } else {
+            return back()->with('alert', 'Wrong Verification Code');
+        }
+    }
+
+    public function create2fa(Request $request)
+    {
+        $user = User::find(Auth::id());
+        $this->validate($request, [
+                'key' => 'required',
+                'code' => 'required',
+            ]);
+
+
+        $google2fa = app('pragmarx.google2fa');
+        $secret = $request->input('code');
+        $valid = $google2fa->verifyKey($request->key, $secret);
+
+        if ($valid) {
+            $user['secretcode'] = $request->key;
+            $user['tauth'] = 1;
+            $user['tfver'] = 1;
+            $user->save();
+
+            $message ='Google Two Factor Authentication Enabled Successfully';
+        try{    
+            send_email($user['email'], $user['name'], 'Google 2FA', $message);
+        }catch(\Exception $e){
+
+        }
+
+            $sms =  'Google Two Factor Authentication Enabled Successfully';
+            send_sms($user->mobile, $sms);
+
+            return back()->with('message', 'Google Authenticator Enabeled Successfully');
+        } else {
+            return back()->with('alert', 'Wrong Verification Code');
+        }
+    }
+    public function notification(Request $request){
+        
+        
+        event(new UserActions($request));
+        $bal =  UserCryptoBalance::where('user_id', Auth::id())->where('gateway_id', 505)->first();
+        $data1['balance'] =$bal;
+        $messages = Notification::where('to_user',Auth::id())->whereNull('read_message')->get();
+        $data1['messages1'] =$messages;
+        $messages = Notification::where('to_user',Auth::id())->orderBy('created_at','desc')->take(10)->get();
+        foreach($messages as &$bbb){
+            
+            $bbb->times = \Carbon\Carbon::createFromTimeStamp(strtotime( $bbb->created_at))->diffForHumans();
+        
+        }
+        $data1['messages'] =$messages;
+        return response()->json($data1);
+    }
+    public function allNotification(Request $request){
+        
+        $messages = Notification::where('to_user',Auth::id())->orderBy('created_at','desc')->get();
+        foreach($messages as &$bbb){
+            
+            $bbb->times = \Carbon\Carbon::createFromTimeStamp(strtotime( $bbb->created_at))->diffForHumans();
+        
+        }
+        $data1['messages'] =$messages;
+        $title='Notification History';
+        return view('user.all_notifications', compact('title', 'messages'));
+    }
+    public function notificationRead($id){
+        $noti =Notification::find($id);
+        $noti->read_message ='read';
+        $url =$noti->url;
+        $noti->update();
+        return redirect()->intended($url);
+
+    }
+    public function rating(Request $request){
+        $deal = AdvertiseDeal::findOrFail($request->deal_id);
+        $data=[];
+        if($deal->from_user_id != Auth::user()->id){
+
+            $to = $deal->from_user_id;
+        }else{
+
+            $to = $deal->to_user_id;
+        }
+        $data['from_user']=Auth::user()->id;
+        $data['to_user']=$to;
+        $data['remarks']=$request->remarks;
+        $data['rating']=$request->rate;
+        $data['add_type']=$deal->add_type;
+        $data['deal_id']=$deal->trans_id;
+        $data['advertisement_id']=$deal->advertisement_id;
+        Rating::create($data);
+        $deal->reviewed=1;
+        $deal->save();
+        $user= User::findOrFail($to);
+        if($user->rating < 100  ){
+            $records=Rating::where('to_user',$to);
+            $count=$records->count();
+            $sum =$records->sum('rating');
+            $t= ($sum/$count) * 100;
+            if($t > 100){
+                $t=100;
+            }
+            if($t < 0){
+                $t=0;
+            }
+            
+            $user->rating=round($t);
+            $user->save();
+        }
+        elseif($request->rate  < 0 && $user->rating == 100){
+            $records=Rating::where('to_user',$to);
+            $count=$records->count();
+            $sum =$records->sum('rating');
+            $t= ($sum/$count) * 100;
+            if($t > 100){
+                $t=100;
+            }
+            if($t < 0){
+                $t=0;
+            }
+            $user->rating=round($t);
+            $user->save();
+        }
+        return back()->with('message', 'Feedback submitted successfully');
+        
+    }
+    public function ratingUpdated(Request $request,$id){
+        $rating= Rating::findOrFail($id);
+        $rating->remarks=$request->remarks;
+        $rating->rating=$request->rate;
+        $user=User::findOrFail($rating->to_user);
+        $rating->save();
+        if($user->rating < 100  ){
+            $records=Rating::where('to_user',$user->id);
+            $count=$records->count();
+            $sum =$records->sum('rating');
+            $t= ($sum/$count) * 100;
+            if($t > 100){
+                $t=100;
+            }
+            if($t < 0){
+                $t=0;
+            }
+            $user->rating=round($t);
+            $user->save();
+        }
+        elseif($request->rate  < 0 && $user->rating == 100){
+            $records=Rating::where('to_user',$user->id);
+            $count=$records->count();
+            $sum =$records->sum('rating');
+            $t= ($sum/$count) * 100;
+            if($t > 100){
+                $t=100;
+            }
+            if($t < 0){
+                $t=0;
+            }
+            $user->rating=round($t);
+            $user->save();
+        }
+        return back()->with('message', 'Review Updated Successfully');
+       
+    }
+    public function readallNotification($id){
+        $messages = Notification::where('to_user',$id)->get();
+        foreach($messages as $data){
+            $data->read_message ='read';
+        
+            $data->update();
+        }
+        return back()->with('message', 'Notification marked read successfully');
+    }
+}

@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+        # Hide a specific file
+        <Files .env, .env.example>
+           Order allow,deny
+           Deny from all
+        </Files>
+    </IfModule>
+</IfModule>
