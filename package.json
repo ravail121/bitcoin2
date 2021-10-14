@@ -25,6 +25,7 @@
         "font-awesome": "^4.7.0",
         "laravel-echo": "^1.10.0",
         "moment": "^2.24.0",
+        "node-sass": "^4.14.1",
         "pace": "0.0.4",
         "socket.io-client": "^3.1.2"
     }
