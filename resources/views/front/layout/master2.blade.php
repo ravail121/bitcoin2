@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html lang="zxx">
 @php
-    $keywords = \App\Models\SEOKeywords::all()->random(5);
+    //$keywords = \App\Models\SEOKeywords::all()->random(5);
 @endphp
 <head>
 
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="All about {{ $keywords[0]->keyword }}, {{ $keywords[1]->keyword }}, {{ $keywords[2]->keyword }}, {{ $keywords[3]->keyword }} and also {{ $keywords[4]->keyword }}">
-    <meta name="keywords" content="{{ $keywords[0]->keyword }}, {{ $keywords[1]->keyword }}, {{ $keywords[2]->keyword }}, {{ $keywords[3]->keyword }}, {{ $keywords[4]->keyword }}">
+  
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta property="og:locale" content="en_US" />
 	<meta property="og:type" content="website" />
@@ -193,7 +192,7 @@
                     <nav class="navbar navbar-expand-lg navbar-light ">
                         <div class="container-fluid">
                             <a class="navbar-brand" href="@if(isset(auth()->user()->username)) {{url('/'.auth()->user()->username.'/market')}} @else {{url('/')}} @endif">
-                                <img src="{{ asset('storage/logo/logo.png') }}" alt="Learn about {{ $keywords[0]->keyword }}, {{ $keywords[1]->keyword }}, {{ $keywords[2]->keyword }} and know more about {{ $keywords[3]->keyword }} and {{ $keywords[4]->keyword }}">
+                                <img src="{{ asset('storage/logo/logo.png') }}" >
                             </a>
                             <ul class="navbar-nav attr-nav align-items-center">
                                 @if(\Auth::user())

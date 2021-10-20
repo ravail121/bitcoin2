@@ -14,6 +14,7 @@ class UserLogin extends Migration
     public function up()
     {
         Schema::create('user_login', function (Blueprint $table) {
+$table->unsignedInteger('user_id')->index();
             $table->bigIncrements('id');
             $table->foreign('user_id')
                   ->references('id')->on('users')

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserLogin extends Model
 {
-    protected $table = 'user_logins';
+    protected $table = 'user_login';
 
     protected $fillable = ['user_id','user_ip','location','details', 'country_name', 'browser', 'action', 'platform', 'is_country_changed'];
     public function user()
