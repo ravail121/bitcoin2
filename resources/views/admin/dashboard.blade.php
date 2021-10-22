@@ -99,7 +99,7 @@ canvas {
                                         <div id="deals_under_dispute_blink" class="widget-small red p-1">
                                             <div class="info">
                                                 <h4>Disputed Deals</h4>
-                                                <p><b class="counter" id="deals_under_dispute">0</b></p>
+                                                <p><b class="counter" id="deals_under_dispute">{{$disputed_deals_count}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -147,7 +147,7 @@ canvas {
                                         <div id="open_support_tickets_blink" class="widget-small grey p-1">
                                             <div class="info">
                                                 <h4>Open Support Tickets </h4>
-                                                <p><b class="counter" id="open_support_tickets">0</b> (<span class="counter" id="unread_support_tickets">0</span>)</p>
+                                                <p><b class="counter" id="open_support_tickets">{{$ticket}}</b> (<span class="counter" id="unread_support_tickets">0</span>)</p>
                                             </div>
                                         </div>
                                     </a>
@@ -265,7 +265,7 @@ canvas {
                                     <div  id="24_hrs_number_of_new_ads_blink" class="widget-small blue p-1">
                                         <div class="info">
                                             <h4>New Ads</h4>
-                                            <p><b class="counter" id="24_hrs_number_of_new_ads">0</b></p>
+                                            <p><b class="counter" id="24_hrs_number_of_new_ads">{{$ads24}}</b></p>
                                         </div>
                                     </div>
                                 </a>
@@ -289,7 +289,7 @@ canvas {
                                     <div  id="24_hrs_new_signups_blink" class="widget-small blue p-1">
                                         <div class="info">
                                             <h4>New Signups </h4>
-                                            <p><b class="counter" id="24_hrs_new_signups">0</b></p>
+                                            <p><b class="counter" id="24_hrs_new_signups">{{$signups}}</b></p>
                                         </div>
                                     </div>
                                 </a>
@@ -319,7 +319,7 @@ canvas {
                                             <div  id="total_users_blink" class="widget-small blue p-1">
                                                 <div class="info">
                                                     <span>Users</span>
-                                                    <span class="value"><b class="counter" id="total_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_users"></b>{{$user}}</span>
                                                 </div>
                                             </div>
                                         </a>
@@ -329,7 +329,7 @@ canvas {
                                             <div  id="total_marketing_users_blink" class="widget-small grey p-1">
                                                 <div class="info">
                                                     <span>Global Users</span>
-                                                    <span class="value"><b class="counter" id="total_marketing_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_marketing_users">{{$global}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -339,7 +339,7 @@ canvas {
                                             <div  id="total_real_users_blink" class="widget-small grey p-1">
                                                 <div class="info">
                                                     <span>Pro Users</span>
-                                                    <span class="value"><b class="counter" id="total_real_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_real_users">{{$pro}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -353,7 +353,7 @@ canvas {
                                             <div  id="p_unverified_users_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>SMS UNVERIFIED</span>
-                                                    <span class="value"><b class="counter" id="p_unverified_users">0</b></p>
+                                                    <span class="value"><b class="counter" id="p_unverified_users">{{$phone_active}}</b></p>
                                                 </div>
                                             </div>
                                         </a>
@@ -363,7 +363,7 @@ canvas {
                                             <div  id="e_unverified_users_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>EMAIL UNVERIFIED</span>
-                                                    <span class="value"><b class="counter" id="e_unverified_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="e_unverified_users">{{$email_active}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -373,7 +373,7 @@ canvas {
                                             <div  id="document_unverified_users_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>Document Unverified Users</span>
-                                                    <span class="value"><b class="counter" id="document_unverified_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="document_unverified_users">{{$unverified}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -387,7 +387,7 @@ canvas {
                                             <div  id="auto_verified_users_blink" class="widget-small green p-1">
                                                 <div class="info">
                                                     <span>Auto Verified User</span>
-                                                    <span class="value"><b class="counter" id="auto_verified_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="auto_verified_users">{{$autoverified}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -397,7 +397,7 @@ canvas {
                                             <div  id="active_users_blink" class="widget-small green p-1">
                                                 <div class="info">
                                                     <span>Active Users</span>
-                                                    <span class="value"><b class="counter" id="active_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="active_users">{{$user_active}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -407,7 +407,7 @@ canvas {
                                             <div  id="deactivated_users_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>Deactivated Users</span>
-                                                    <span class="value"><b class="counter" id="deactivated_users">0</b></span>
+                                                    <span class="value"><b class="counter" id="deactivated_users">{{$user_deactive}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -476,7 +476,7 @@ canvas {
                                             <div id="total_active_ads_blink"  class="widget-small green p-1">
                                                 <div class="info">
                                                     <span>Active ADs</span>
-                                                    <span class="value"><b class="counter" id="total_active_ads">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_active_ads">{{$ads_active}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -486,7 +486,7 @@ canvas {
                                             <div id="total_inactive_ads_blink"  class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>Inactive Ads</span>
-                                                    <span class="value"><b class="counter" id="total_inactive_ads">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_inactive_ads">{{$ads_inactive}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -510,7 +510,7 @@ canvas {
                                             <div  id="total_currency_blink" class="widget-small grey p-1">
                                                 <div class="info">
                                                     <span>Currency</span>
-                                                    <span class="value"><b class="counter" id="total_currency">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_currency">{{$currency}}</b></span>
                                                 </div>
                                             </div>
                                         </a>

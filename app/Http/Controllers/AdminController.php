@@ -74,24 +74,37 @@ class AdminController extends Controller
         if($admin->is_pro==1){
             $data['dashboard_type'] = 'Counter';
             // $data['page_title'] = 'DashBoard';
+                $data['ads24']=Advertisement::whereDate('created_at', Carbon::today())->count();
             $data['Gset'] = GeneralSettings::first();
-            // $data['method'] = PaymentMethod::where('status', 1)->count();
-            // $data['currency'] = Currency::where('status', 1)->count();
-            // $data['user'] = User::count();
-            // $data['user_active'] = User::where('status', 1)->count();
-            // $data['unverified'] = User::where('document_uploaded', 1)->count();
-            // $data['autoverified'] = User::where('auto_verified', 1)->count();
-            // $data['email_active'] = User::where('email_verify', 0)->count();
-            // $data['phone_active'] = User::where('phone_verify', 0)->count();
-            // $data['ticket'] = Ticket::where('status', 1)->orWhere('status', 3)->count();
-            // $data['active_today'] = UserLogin::whereDate('created_at', Carbon::today())->count();
-            // $data['totalDeposited'] = Transaction::deposits()->sum('amount');
-            // $data['completed_deals']=AdvertiseDeal::where('status', 1)->latest()->paginate(5, ['*'], 'p');
-            // $data['disputed_deals']=AdvertiseDeal::where('status', 10)->ORwhere('status', 11)->latest()->paginate(5, ['*'], 'q');
-            // $data['active_deposits']= Transaction::where('type','deposit')->latest()->paginate(5, ['*'], 'r');
-            // $data['active_withdraw']=WithdrawRequest::latest()->paginate(5, ['*'], 's');
+             $data['method'] = PaymentMethod::where('status', 1)->count();
+             $data['currency'] = Currency::where('status', 1)->count();
+             $data['user'] = User::count();
+                $data['signups']=User::whereDate('created_at', Carbon::today())->count();
+             $data['user_active'] = User::where('status', 1)->count();
+$data['user_deactive'] = User::where('status', 0)->count();
+                //dd($data['signups']);
+$data['pro']=User::where('email', 'like', '%@tbe.email')->count();
+$data['global']=User::where('email', 'not like', '%@tbe.email')->count();
+                //$data['global'] = User::where('is_pro', 0)->count();
+             $data['unverified'] = User::where('verified', 0)->count();
+            $data['autoverified'] = User::where('auto_verified', 1)->count();
+             $data['email_active'] = User::where('email_verify', 0)->count();
+             $data['phone_active'] = User::where('phone_verify', 0)->count();
+             $data['ticket'] = Ticket::where('status', 1)->orWhere('status', 3)->count();
+             $data['active_today'] = UserLogin::whereDate('created_at', Carbon::today())->count();
+                        $data['ads_active']=Advertisement::where('status', 1)->count();
+                $data['ads_inactive']=Advertisement::where('status', 0)->count();
+             $data['totalDeposited'] = Transaction::deposits()->sum('amount');
+             $data['completed_deals']=AdvertiseDeal::where('status', 1)->latest()->paginate(5, ['*'], 'p');
+             $data['disputed_deals']=AdvertiseDeal::where('status', 10)->ORwhere('status', 11)->latest()->paginate(5, ['*'], 'q');
+                 $data['disputed_deals_count']=AdvertiseDeal::where('status', 10)->ORwhere('status', 11)->count();
+             $data['active_deposits']= Transaction::where('type','deposit')->latest()->paginate(5, ['*'], 'r');
+             $data['active_withdraw']=WithdrawRequest::latest()->paginate(5, ['*'], 's');
 
-            return view('admin.dashboard', $data);
+            return view('admin.dashboard',$data);
+
+
+           
         }else{
             $data['page_title'] = 'DashBoard';
             return view('admin.others_dashboard', $data);
