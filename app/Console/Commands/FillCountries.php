@@ -287,6 +287,8 @@ class FillCountries extends Command
      */
     public function handle()
     {
+
+//echo 5;exit;
       foreach ($this->list as $iso => $name) {
           $country = Country::where(['name' => $name])->first();
           if (!$country) {

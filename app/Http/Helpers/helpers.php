@@ -49,6 +49,7 @@ if (! function_exists('send_email')) {
         $title= 'Bitcoin.ngo';
 		if($gnl->email_notification == 1)
 		{
+//echo $temp->esender;exit;
 			$headers = "From: $gnl->title <$from> \r\n";
 			$headers .= "Reply-To: $gnl->title <$from> \r\n";
 			$headers .= "MIME-Version: 1.0\r\n";

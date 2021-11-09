@@ -1,10 +1,11 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Etemplate;
 use App\Models\PaymentMethod;
 use App\Models\Currency;
 use App\Models\Ticket;
+//use App\Models\Country;
 use App\Models\Deposit;
 use App\Models\Trx;
 use App\Models\AdminRoles;
@@ -69,22 +70,32 @@ class AdminController extends Controller
 
     public function dashboard()
     {
+//dd(Country::all());
+//$temp = Etemplate::first();
+//$temp->esender="noreply@bitcoin.ngo";
+//$temp->save();
+
         $admin=Auth::guard('admin')->user();
         $data['page_title'] = 'DashBoard';
         if($admin->is_pro==1){
+
             $data['dashboard_type'] = 'Counter';
             // $data['page_title'] = 'DashBoard';
                 $data['ads24']=Advertisement::whereDate('created_at', Carbon::today())->count();
             $data['Gset'] = GeneralSettings::first();
+		$data['btc']=$data['Gset']->btc_price_factor;
+		$data['auto_veri']=0;
              $data['method'] = PaymentMethod::where('status', 1)->count();
+$data['withdraw_req']=WithdrawRequest::where('status', 'completed')->sum('amount');
              $data['currency'] = Currency::where('status', 1)->count();
              $data['user'] = User::count();
                 $data['signups']=User::whereDate('created_at', Carbon::today())->count();
+$data['method']=PaymentMethod::count();
              $data['user_active'] = User::where('status', 1)->count();
-$data['user_deactive'] = User::where('status', 0)->count();
+$data['user_deactivate'] = User::where('status', 0)->count();
                 //dd($data['signups']);
 $data['pro']=User::where('email', 'like', '%@tbe.email')->count();
-$data['global']=User::where('email', 'not like', '%@tbe.email')->count();
+$data['global']=User::count();
                 //$data['global'] = User::where('is_pro', 0)->count();
              $data['unverified'] = User::where('verified', 0)->count();
             $data['autoverified'] = User::where('auto_verified', 1)->count();
@@ -100,7 +111,21 @@ $data['global']=User::where('email', 'not like', '%@tbe.email')->count();
                  $data['disputed_deals_count']=AdvertiseDeal::where('status', 10)->ORwhere('status', 11)->count();
              $data['active_deposits']= Transaction::where('type','deposit')->latest()->paginate(5, ['*'], 'r');
              $data['active_withdraw']=WithdrawRequest::latest()->paginate(5, ['*'], 's');
-
+$data['overall_balance']=User::join('user_crypto_balances', 'users.id', '=', 'user_crypto_balances.user_id')->sum('balance');
+$data['overall_balance_global']=User::where('email', 'not like', '%@tbe.email')->join('user_crypto_balances', 'users.id', '=', 'user_crypto_balances.user_id')->sum('balance');
+$data['overall_balance_pro']=User::where('email', 'like', '%@tbe.email')->join('user_crypto_balances', 'users.id', '=', 'user_crypto_balances.user_id')->sum('balance');
+$data['active_withdraw_count']=WithdrawRequest::where('status','pending')->count();
+$data['open_deals']=AdvertiseDeal::where('status',0)->orWhere('status',9)->count();
+//dd($data);
+$data['trade']=Trx::where('created_at', '>', Carbon::now()->subDay())->where('created_at', '<=', Carbon::now())->sum('amount');
+$data['deals24']=AdvertiseDeal::where('created_at', '>', Carbon::now()->subDay())->where('created_at', '<=', Carbon::now())->count();
+$data['all_commission']=Trx::sum('charge');;
+$data['hold_deals']=AdvertiseDeal::where('status',11)->count();
+$data['cancelled_deals']=AdvertiseDeal::where('status',2)->count();
+$data['completed_deals']=AdvertiseDeal::where('status',1)->count();
+$data['expired_deals']=AdvertiseDeal::where('status',21)->count();
+$data['deposists']=Transaction::where('status','complete')->sum('amount');
+$data['online']= UserLogin::where('created_at', '>', Carbon::now()->subMinutes(GeneralSettings::first()->dashboard_refresh_time))->where('created_at', '<=', Carbon::now())->distinct('user_id')->count();
             return view('admin.dashboard',$data);
 
 

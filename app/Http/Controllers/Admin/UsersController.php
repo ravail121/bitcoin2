@@ -15,6 +15,7 @@ use App\Models\Transaction;
 use App\Models\WithdrawRequest;
 use App\Models\GeneralSettings;
 use App\Models\User;
+use App\Models\Etemplate;
 use App\Models\UserLogin;
 use App\Models\Country;
 use App\Models\Notification;
@@ -492,6 +493,7 @@ class UsersController extends Controller
             return back()->with('message', 'Users Login Updated Successfuly!');
         }
         elseif($request->submit == "Add Balance"){
+		
             $basic = GeneralSettings::first();
             $amount = 0.1;
             foreach($users as $user_id){

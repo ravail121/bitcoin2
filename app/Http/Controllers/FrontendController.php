@@ -40,10 +40,10 @@ class FrontendController extends Controller
     public function sendemailver()
     {
         $user = User::find(Auth::id());
-
+	$gen=GeneralSettings::first();
         $chktm = Carbon::parse($user->email_time)->addMinutes(1);
 
-        if ($chktm > Carbon::now()) {
+        if ($chktm > Carbon::now() && $user->email_verify == 1) {
             $delay = Carbon::now()->diffInSeconds($chktm);
             return back()->with('alert', 'Please Try after '.$delay.' Seconds');
         } else {

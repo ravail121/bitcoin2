@@ -13,9 +13,9 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        // 'App\Console\Commands\CheckTransactions',
-        // 'App\Console\Commands\UpdateFiatRates',
-        // 'App\Console\Commands\FillCountries',
+         'App\Console\Commands\CheckTransactions',
+         'App\Console\Commands\UpdateFiatRates',
+//         'App\Console\Commands\FillCountries',
         'App\Console\Commands\dealTimer',
         'App\Console\Commands\addPrices',
         'App\Console\Commands\CreateDeals',
@@ -29,12 +29,16 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('transactions:check-pending')
-        //          ->everyMinute();
+         $schedule->command('transactions:check-pending')
+                  ->everyMinute();
+ $schedule->command('fiats:update')
+                  ->everyMinute();
         $schedule->command('deal:timer')
                  ->everyMinute();
         $schedule->command('add:prices')
                 ->everyMinute();
+//$schedule->command('countries:fill')
+  //              ->everyMinute();
         $schedule->command('create:deals')
                 ->everyMinute();
     }

@@ -111,7 +111,7 @@ canvas {
                                         <div  id="pending_withdrawals_blink" class="widget-small blue p-1">
                                             <div class="info">
                                                 <h4>Pending Withdraw</h4>
-                                                <p><b class="counter" id="pending_withdrawals">0</b></p>
+                                                <p><b class="counter" id="pending_withdrawals">{{$active_withdraw_count}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -176,7 +176,7 @@ canvas {
                                         <div id="open_deals_blink" class="widget-small green p-1">
                                             <div class="info">
                                                 <h4>Open </h4>
-                                                <p><b class="counter" id="open_deals">0</b></p>
+                                                <p><b class="counter" id="open_deals">{{$open_deals}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -188,7 +188,7 @@ canvas {
                                         <div id="deals_on_hold_blink" class="widget-small blue p-1">
                                             <div class="info">
                                                 <h4>On Hold</h4>
-                                                <p><b class="counter" id="deals_on_hold">0</b></p>
+                                                <p><b class="counter" id="deals_on_hold">{{$hold_deals}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -200,7 +200,7 @@ canvas {
                                         <div  id="cancelled_deals_blink" class="widget-small red p-1">
                                             <div class="info">
                                                 <h4>Cancelled</h4>
-                                                <p><b class="counter" id="cancelled_deals">0</b></p>
+                                                <p><b class="counter" id="cancelled_deals">{{$cancelled_deals}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -212,7 +212,7 @@ canvas {
                                         <div  id="completed_deals_blink" class="widget-small green p-1">
                                             <div class="info">
                                                 <h4>Completed</h4>
-                                                <p><b class="counter" id="completed_deals">0</b></p>
+                                                <p><b class="counter" id="completed_deals">{{$completed_deals}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -224,7 +224,7 @@ canvas {
                                         <div  id="expired_deals_blink" class="widget-small red p-1">
                                             <div class="info">
                                                 <h4>Expired</h4>
-                                                <p><b class="counter" id="expired_deals">0</b></p>
+                                                <p><b class="counter" id="expired_deals">{{$expired_deals}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -253,7 +253,7 @@ canvas {
                                     <div id="24_hrs_number_of_deals_blink"  class="widget-small green p-1">
                                         <div class="info">
                                             <h4>Deals</h4>
-                                            <p><b class="counter" id="24_hrs_number_of_deals">0</b></p>
+                                            <p><b class="counter" id="24_hrs_number_of_deals">{{$deals24}}</b></p>
                                         </div>
                                     </div>
                                 </a>
@@ -277,7 +277,7 @@ canvas {
                                     <div  id="24_hrs_trade_volume_blink" class="widget-small grey p-1">
                                         <div class="info">
                                             <h4>Trade Volume</h4>
-                                            <p><b class="counter" id="24_hrs_trade_volume">0</b> BTC</p>
+                                            <p><b class="counter" id="24_hrs_trade_volume">{{$trade}}</b> BTC</p>
                                         </div>
                                     </div>
                                 </a>
@@ -325,7 +325,7 @@ canvas {
                                         </a>
                                     </p> 
                                     <p>
-                                        <a href="/adminio/marketing-users" class="text-decoration">
+                                        <a href="/adminio/users" class="text-decoration">
                                             <div  id="total_marketing_users_blink" class="widget-small grey p-1">
                                                 <div class="info">
                                                     <span>Global Users</span>
@@ -335,7 +335,7 @@ canvas {
                                         </a>
                                     </p>
                                     <p>
-                                        <a href="/adminio/users" class="text-decoration">
+                                        <a href="/adminio/marketing-users" class="text-decoration">
                                             <div  id="total_real_users_blink" class="widget-small grey p-1">
                                                 <div class="info">
                                                     <span>Pro Users</span>
@@ -407,7 +407,7 @@ canvas {
                                             <div  id="deactivated_users_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>Deactivated Users</span>
-                                                    <span class="value"><b class="counter" id="deactivated_users">{{$user_deactive}}</b></span>
+                                                    <span class="value"><b class="counter" id="deactivated_users">{{$user_deactivate}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -437,7 +437,7 @@ canvas {
                                         <div id="total_active_users_online_blink"  class="widget-small green p-1">
                                             <div class="info">
                                                 <h4>Active Users Online</h4>
-                                                <p><b class="counter" id="total_active_users_online">0</b></p>
+                                                <p><b class="counter" id="total_active_users_online">{{$online}}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -449,7 +449,7 @@ canvas {
                                         <div  id="base_btc_price_factor_blink" class="widget-small red p-1">
                                             <div class="info">
                                                 <h4>Base BTC Price Factor</h4>
-                                                <p><b class="counter" id="base_btc_price_factor">0</b>%</p>
+                                                <p><b class="counter" id="base_btc_price_factor">{{$Gset->btc_price_factor}}</b>%</p>
                                             </div>
                                         </div>
                                     </a>
@@ -461,7 +461,7 @@ canvas {
                                         <div id="auto_verification_blink"  class="widget-small green p-1">
                                             <div class="info">
                                                 <h4>Auto Verification</h4>
-                                                <p><b class="counter" id="auto_verification">Off</b></p>
+                                                <p><b class="counter" id="auto_verification">{{$general->auto_verification == "1" ? 'ON' : 'OFF' }}</b></p>
                                             </div>
                                         </div>
                                     </a>
@@ -500,7 +500,7 @@ canvas {
                                             <div  id="total_methods_blink" class="widget-small grey p-1">
                                                 <div class="info">
                                                     <span>Methods</span>
-                                                    <span class="value"><b class="counter" id="total_methods">0</b></span>
+                                                    <span class="value"><b class="counter" id="total_methods">{{$method}}</b></span>
                                                 </div>
                                             </div>
                                         </a>
@@ -546,7 +546,7 @@ canvas {
                                             <div  id="all_time_withdrawals_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>All Time withdrawals</span>
-                                                    <span class="value"><b class="counter" id="all_time_withdrawals">0</b> BTC</span>
+                                                    <span class="value"><b class="counter" id="all_time_withdrawals">{{$withdraw_req}}</b> BTC</span>
                                                 </div>
                                             </div>
                                         </a>
@@ -556,7 +556,7 @@ canvas {
                                             <div id="all_time_deposits_blink"  class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>All Time Deposits </span>
-                                                    <span class="value"><b class="counter" id="all_time_deposits">0</b> BTC</p>
+                                                    <span class="value"><b class="counter" id="all_time_deposits">{{$deposists}}</b> BTC</p>
                                                 </div>
                                             </div>
                                         </a>
@@ -570,7 +570,7 @@ canvas {
                                             <div  id="total_system_balance_blink" class="widget-small green p-1">
                                                 <div class="info">
                                                     <span>OverAll Balance</span>
-                                                    <span class="value"><b class="counter" id="total_system_balance">0</b> BTC</span>
+                                                    <span class="value"><b class="counter" id="total_system_balance">{{$overall_balance}}</b> BTC</span>
                                                 </div>
                                             </div>
                                         </a>
@@ -580,7 +580,7 @@ canvas {
                                             <div  id="all_time_total_commission_blink" class="widget-small red p-1">
                                                 <div class="info">
                                                     <span>All Time Commissions</span>
-                                                    <span class="value"><b class="counter" id="all_time_total_commission">0</b> BTC</span>
+                                                    <span class="value"><b class="counter" id="all_time_total_commission">{{$all_commission}}</b> BTC</span>
                                                 </div>
                                             </div>
                                         </a>
@@ -590,21 +590,21 @@ canvas {
                             <div class="col-sm-4">
                                 <div class="well"> 
                                     <p>
-                                        <a href="/adminio/marketing-users" class="text-decoration">
+                                        <a href="/adminio/users" class="text-decoration">
                                             <div  id="marketing_users_balance_blink" class="widget-small blue p-1">
                                                 <div class="info">
                                                     <span>Global Users Balance</span>
-                                                    <span class="value"><b class="counter" id="marketing_users_balance">0</b> BTC</span>
+                                                    <span class="value"><b class="counter" id="marketing_users_balance">{{$overall_balance_global}}</b> BTC</span>
                                                 </div>
                                             </div>
                                         </a>
                                     </p> 
                                     <p>
-                                        <a href="/adminio/users" class="text-decoration">
+                                        <a href="/adminio/marketing-users" class="text-decoration">
                                             <div  id="real_users_balance_blink" class="widget-small blue p-1">
                                                 <div class="info">
                                                     <span>Pro Users Balance</span>
-                                                    <span class="value"><b class="counter" id="real_users_balance">0</b> BTC</span>
+                                                    <span class="value"><b class="counter" id="real_users_balance">{{$overall_balance_pro}}</b> BTC</span>
                                                 </div>
                                             </div>
                                         </a>

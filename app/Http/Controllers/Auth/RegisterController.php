@@ -125,8 +125,8 @@ class RegisterController extends Controller
 
         $verification_code  = rand (1000,9999);
         $sms_code  = rand (1000 , 9999);
-        $email_time = Carbon::parse()->addMinutes(5);
-        $phone_time = Carbon::parse()->addMinutes(5);
+        $email_time = Carbon::parse()->addMinutes(1);
+        $phone_time = Carbon::parse()->addMinutes(1);
 
         $ip = geoip()->getLocation();
         $country = \App\Models\Country::whereName($ip->country)->first();
